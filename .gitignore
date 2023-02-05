@@ -1,0 +1,15 @@
+*
+!*/
+/env/
+/__pycache__/
+
+!*.py
+!*.html
+!*.js
+!*.css
+!Dockerfile
+!.gitignore
+!*.txt
+!*.yml
+!*.hcl
+secret.txt

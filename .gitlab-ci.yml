@@ -1,0 +1,51 @@
+# This file is a template, and might need editing before it works on your project.
+# This is a sample GitLab CI/CD configuration file that should run without any modifications.
+# It demonstrates a basic 3 stage CI/CD pipeline. Instead of real tests or scripts,
+# it uses echo commands to simulate the pipeline execution.
+#
+# A pipeline is composed of independent jobs that run scripts, grouped into stages.
+# Stages run in sequential order, but jobs within stages run in parallel.
+#
+# For more information, see: https://docs.gitlab.com/ee/ci/yaml/index.html#stages
+#
+# You can copy and paste this template into a new `.gitlab-ci.yml` file.
+# You should not add this template to an existing `.gitlab-ci.yml` file by using the `include:` keyword.
+#
+# To contribute improvements to CI/CD templates, please follow the Development guide at:
+# https://docs.gitlab.com/ee/development/cicd/templates.html
+# This specific template is located at:
+# https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Getting-Started.gitlab-ci.yml
+
+stages:          # List of stages for jobs, and their order of execution
+  - build
+  - read secrets + delivery
+
+build-job:       # This job runs in the build stage, which runs first.
+  stage: build
+  script:
+    - sudo docker build -t mbadakh/weather /home/ubuntu/builds/Y3Cxz3wK/0/gitlab-instance-e6a21ea3/home-assignment/.
+    - echo "build complete."
+
+
+read_secrets:
+  stage: read secrets + delivery
+  image: vault:latest
+  script:
+    # Check job's ref name
+    - echo $CI_COMMIT_REF_NAME
+    # and is this ref protected
+    - echo $CI_JOB_JWT
+    - echo $CI_COMMIT_REF_PROTECTED
+    # Vault's address can be provided here or as CI/CD variable
+    - export VAULT_ADDR=http://44.199.202.117:8200
+    # Authenticate and get token. Token expiry time and other properties can be configured
+    # when configuring JWT Auth - https://developer.hashicorp.com/vault/api-docs/auth/jwt#parameters-1
+    - export VAULT_TOKEN="$(vault write -field=token auth/jwt/login role=docker-hub-token jwt=$CI_JOB_JWT)"
+    # Now use the VAULT_TOKEN to read the secret and store it in an environment variable
+    - export PASSWORD="$(vault kv get -field=token secret/docker-hub-token)"
+    # Use the secret
+    - sudo docker login -u=mbadakh -p=$PASSWORD
+    - sudo docker tag mbadakh/weather mbadakh/weather:latest
+    - sudo docker push mbadakh/weather:latest
+    - echo "Application successfully delivered/released."
+    

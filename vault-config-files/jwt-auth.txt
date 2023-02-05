@@ -1,0 +1,1 @@
+vault write auth/jwt/config     jwks_url="http://54.162.179.49//-/jwks"     bound_issuer="54.162.179.49"
