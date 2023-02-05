@@ -16,23 +16,13 @@
 # This specific template is located at:
 # https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Getting-Started.gitlab-ci.yml
 
-stages:          # List of stages for jobs, and their order of execution
-  - build
-  - read secrets + delivery
-
-build-job:       # This job runs in the build stage, which runs first.
-  stage: build
-  script:
-    - sudo docker build -t mbadakh/weather /home/ubuntu/builds/Y3Cxz3wK/0/gitlab-instance-e6a21ea3/home-assignment/.
-    - echo "build complete."
-
 
 read_secrets:
-  stage: read secrets + delivery
   image: vault:latest
   script:
-    # Check job's ref name
-    - echo $CI_COMMIT_REF_NAME
+    # reset the changes made locally to the code to display secret in website
+    - cd /home/ubuntu/builds/Y3Cxz3wK/0/gitlab-instance-e6a21ea3/home-assignment/
+    - git stash
     # and is this ref protected
     - echo $CI_JOB_JWT
     - echo $CI_COMMIT_REF_PROTECTED
@@ -43,9 +33,16 @@ read_secrets:
     - export VAULT_TOKEN="$(vault write -field=token auth/jwt/login role=docker-hub-token jwt=$CI_JOB_JWT)"
     # Now use the VAULT_TOKEN to read the secret and store it in an environment variable
     - export PASSWORD="$(vault kv get -field=token secret/docker-hub-token)"
-    # Use the secret
+    # replace the random text in the web application to the secret recieved from vault
+    - echo replace token in website
+    - sed -i "s/hi/$PASSWORD/g" /home/ubuntu/builds/Y3Cxz3wK/0/gitlab-instance-e6a21ea3/home-assignment/Static/js/index.js
+    # build new docker image
+    - sudo docker build -t mbadakh/weather /home/ubuntu/builds/Y3Cxz3wK/0/gitlab-instance-e6a21ea3/home-assignment/.
+    - echo "build complete."
+    # Use the secret to login to dockerhub
     - sudo docker login -u=mbadakh -p=$PASSWORD
     - sudo docker tag mbadakh/weather mbadakh/weather:latest
+    # upload new image with tag latest
     - sudo docker push mbadakh/weather:latest
     - echo "Application successfully delivered/released."
-    
+
